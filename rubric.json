@@ -1,0 +1,38 @@
+{
+  "scale": "1-10",
+  "bands": [
+    {
+      "band": "Need Attention", "range": [1, 3],
+      "scores": [
+        { "value": 1, "label": "Not Interested", "signals": ["disengagement", "absence", "no visible effort"] },
+        { "value": 2, "label": "Lacks Discipline", "signals": ["works only when told", "no self-initiative", "requires constant supervision"] },
+        { "value": 3, "label": "Motivated but Directionless", "signals": ["enthusiasm present", "confusion about role", "effort without output"] }
+      ]
+    },
+    {
+      "band": "Productivity", "range": [4, 6],
+      "scores": [
+        { "value": 4, "label": "Careless and Inconsistent", "signals": ["output exists but quality varies", "hit or miss"] },
+        { "value": 5, "label": "Consistent Performer", "signals": ["reliable task execution", "does what asked", "meets standards"] },
+        { "value": 6, "label": "Reliable and Productive", "signals": ["high trust", "supervisor delegates freely", "Fellow owns tasks end-to-end"], "critical_note": "Score 6 = initiative WITHIN assigned scope. Supervisor defines; Fellow executes reliably." }
+      ]
+    },
+    {
+      "band": "Performance", "range": [7, 10],
+      "scores": [
+        { "value": 7, "label": "Problem Identifier", "signals": ["spots unsolicited patterns", "expands scope independently"], "boundary_note": "Score 7 = Fellow notices problems the supervisor HADN'T ASKED ABOUT. This is the critical 6→7 boundary." },
+        { "value": 8, "label": "Problem Solver", "signals": ["identifies AND builds solutions", "creates self-sustaining systems"] },
+        { "value": 9, "label": "Innovative and Experimental", "signals": ["new tools/processes", "tests approaches", "MVPs"] },
+        { "value": 10, "label": "Exceptional Performer", "signals": ["all of 9", "others learn from this Fellow"] }
+      ]
+    }
+  ],
+  "assessment_dimensions": [
+    { "id": "driving_execution", "label": "Driving Execution" },
+    { "id": "systems_building", "label": "Systems Building" },
+    { "id": "kpi_impact", "label": "KPI Impact" },
+    { "id": "change_management", "label": "Change Management" }
+  ],
+  "supervisor_biases": ["helpfulness_bias", "presence_bias", "halo_horn_effect", "recency_bias", "dependency_trap"],
+  "kpis": ["Lead Generation", "Lead Conversion", "Upselling", "Cross-selling", "NPS", "PAT", "TAT", "Quality"]
+}
