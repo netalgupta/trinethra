@@ -263,19 +263,23 @@ mark.lit{opacity:1!important;outline:2px solid var(--blue);border-radius:3px}
 .dtag-anchor{background:#FFF1F2;color:#9F1239}
 .dq-desc{font-size:12px;color:var(--ink3);margin-bottom:8px;line-height:1.5}
 .radio-group{display:flex;flex-direction:column;gap:6px}
-.radio-opt{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;
-  color:var(--ink2);padding:6px 10px;border-radius:var(--r);border:1px solid var(--border);
-  background:var(--bg);transition:all .15s}
+.radio-opt{display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;
+  color:var(--ink2);padding:10px 14px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--bg);transition:all .15s;width:100%;line-height:1.55;text-align:left}
 .radio-opt:hover{border-color:var(--blue);background:var(--blue-bg);color:var(--ink)}
-.radio-opt input[type=radio]{accent-color:var(--blue);flex-shrink:0}
+.radio-opt input[type=radio]{accent-color:var(--blue);flex-shrink:0;margin-top:3px;
+  width:15px;height:15px}
+.radio-opt span{flex:1;min-width:0;word-wrap:break-word}
 .radio-opt.selected{border-color:var(--blue);background:var(--blue-bg);
   color:var(--blue);font-weight:500}
 .check-group{display:flex;flex-direction:column;gap:6px}
-.check-opt{display:flex;align-items:start;gap:8px;cursor:pointer;font-size:13px;
-  color:var(--ink2);padding:6px 10px;border-radius:var(--r);border:1px solid var(--border);
-  background:var(--bg);transition:all .15s}
+.check-opt{display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;
+  color:var(--ink2);padding:10px 14px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--bg);transition:all .15s;width:100%;line-height:1.55;text-align:left}
 .check-opt:hover{border-color:var(--amber);background:var(--amber-bg);color:var(--ink)}
-.check-opt input[type=checkbox]{accent-color:var(--amber);flex-shrink:0;margin-top:2px}
+.check-opt input[type=checkbox]{accent-color:var(--amber);flex-shrink:0;margin-top:3px;
+  width:15px;height:15px}
+.check-opt span{flex:1;min-width:0;word-wrap:break-word}
 .check-opt.selected{border-color:var(--amber);background:var(--amber-bg);
   color:var(--amber);font-weight:500}
 .gut-row{display:flex;align-items:center;gap:10px}
@@ -827,9 +831,9 @@ function renderDelibPanel(){
       <div class="dq-label">Reading between the lines</div>
       <div class="dq-desc">Based on the transcript — did the Fellow ever bring something to the supervisor's attention that the supervisor hadn't noticed or asked about? A problem they spotted themselves, a pattern they flagged, an observation they volunteered?</div>
       <div class="radio-group" id="q1-group">
-        <label class="radio-opt" onclick="selectRadio('q1','yes',this)"><input type="radio" name="q1" value="yes">Yes — there's a clear moment where the Fellow led, not followed</label>
-        <label class="radio-opt" onclick="selectRadio('q1','possibly',this)"><input type="radio" name="q1" value="possibly">Hard to tell — the transcript doesn't make it clear who initiated</label>
-        <label class="radio-opt" onclick="selectRadio('q1','no',this)"><input type="radio" name="q1" value="no">No — everything described was something the supervisor assigned</label>
+        <label class="radio-opt" onclick="selectRadio('q1','yes',this)"><input type="radio" name="q1" value="yes"><span>Yes — there's a clear moment where the Fellow led, not followed</span></label>
+        <label class="radio-opt" onclick="selectRadio('q1','possibly',this)"><input type="radio" name="q1" value="possibly"><span>Hard to tell — the transcript doesn't make it clear who initiated</span></label>
+        <label class="radio-opt" onclick="selectRadio('q1','no',this)"><input type="radio" name="q1" value="no"><span>No — everything described was something the supervisor assigned</span></label>
       </div>
     </div>
 
@@ -838,9 +842,9 @@ function renderDelibPanel(){
       <div class="dq-label">The leaving question</div>
       <div class="dq-desc">Imagine the Fellow's last day is tomorrow. Based on what the supervisor described — what actually remains? Are there processes, trackers, or habits in place that the team would continue using? Or does everything the Fellow "owns" just stop?</div>
       <div class="radio-group" id="q2-group">
-        <label class="radio-opt" onclick="selectRadio('q2','keeps_running',this)"><input type="radio" name="q2" value="keeps_running">Things would keep running — the Fellow built something that outlasts them</label>
-        <label class="radio-opt" onclick="selectRadio('q2','mixed',this)"><input type="radio" name="q2" value="mixed">Some things would continue, some would fall apart without them</label>
-        <label class="radio-opt" onclick="selectRadio('q2','everything_stops',this)"><input type="radio" name="q2" value="everything_stops">Most things would stop — the work lives in the Fellow, not the organization</label>
+        <label class="radio-opt" onclick="selectRadio('q2','keeps_running',this)"><input type="radio" name="q2" value="keeps_running"><span>Things would keep running — the Fellow built something that outlasts them</span></label>
+        <label class="radio-opt" onclick="selectRadio('q2','mixed',this)"><input type="radio" name="q2" value="mixed"><span>Some things would continue, some would fall apart without them</span></label>
+        <label class="radio-opt" onclick="selectRadio('q2','everything_stops',this)"><input type="radio" name="q2" value="everything_stops"><span>Most things would stop — the work lives in the Fellow, not the organization</span></label>
       </div>
     </div>
 
@@ -849,12 +853,12 @@ function renderDelibPanel(){
       <div class="dq-label">How does the supervisor sound to you?</div>
       <div class="dq-desc">Supervisors are honest, but they have blind spots. Does any of the following feel true about this particular feedback? Select everything that applies — or none if the feedback feels measured and balanced.</div>
       <div class="check-group" id="q3-group">
-        <label class="check-opt" onclick="toggleCheck('helpfulness_bias',this)"><input type="checkbox" value="helpfulness_bias">"They've taken so much off my plate" — the supervisor is relieved, which may be inflating the score</label>
-        <label class="check-opt" onclick="toggleCheck('presence_bias',this)"><input type="checkbox" value="presence_bias">"Always on the floor" — being physically present is being valued over quieter, deeper work</label>
-        <label class="check-opt" onclick="toggleCheck('halo_positive',this)"><input type="checkbox" value="halo_positive">One impressive story is doing a lot of heavy lifting for an otherwise thin assessment</label>
-        <label class="check-opt" onclick="toggleCheck('halo_negative',this)"><input type="checkbox" value="halo_negative">One criticism is overshadowing real contributions that are mentioned but downplayed</label>
-        <label class="check-opt" onclick="toggleCheck('dependency_trap',this)"><input type="checkbox" value="dependency_trap">The supervisor would be in trouble if the Fellow left — the Fellow is a crutch, not a builder</label>
-        <label class="check-opt" onclick="toggleCheck('none',this)"><input type="checkbox" value="none">None of these — the feedback feels fair and grounded</label>
+        <label class="check-opt" onclick="toggleCheck('helpfulness_bias',this)"><input type="checkbox" value="helpfulness_bias"><span>"They've taken so much off my plate" — the supervisor is relieved, which may be inflating the score</span></label>
+        <label class="check-opt" onclick="toggleCheck('presence_bias',this)"><input type="checkbox" value="presence_bias"><span>"Always on the floor" — being physically present is being valued over quieter, deeper work</span></label>
+        <label class="check-opt" onclick="toggleCheck('halo_positive',this)"><input type="checkbox" value="halo_positive"><span>One impressive story is doing a lot of heavy lifting for an otherwise thin assessment</span></label>
+        <label class="check-opt" onclick="toggleCheck('halo_negative',this)"><input type="checkbox" value="halo_negative"><span>One criticism is overshadowing real contributions that are mentioned but downplayed</span></label>
+        <label class="check-opt" onclick="toggleCheck('dependency_trap',this)"><input type="checkbox" value="dependency_trap"><span>The supervisor would be in trouble if the Fellow left — the Fellow is a crutch, not a builder</span></label>
+        <label class="check-opt" onclick="toggleCheck('none',this)"><input type="checkbox" value="none"><span>None of these — the feedback feels fair and grounded</span></label>
       </div>
     </div>
 
