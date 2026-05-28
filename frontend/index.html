@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trinethra · Supervisor Feedback Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@400;500&family=Playfair+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F4F2ED;
+  --surface:#FFFFFF;
+  --surface2:#EEEBe4;
+  --border:#DAD7CD;
+  --border-light:#E8E5DC;
+  --ink:#17150E;
+  --ink2:#64615A;
+  --ink3:#A09D94;
+  --blue:#1849C6;
+  --blue-bg:#EEF1FD;
+  --green:#145A30;
+  --green-bg:#EBF6F0;
+  --red:#8B1C1C;
+  --red-bg:#FBF0F0;
+  --amber:#7A4800;
+  --amber-bg:#FDF6E7;
+  --font:'DM Sans',system-ui,sans-serif;
+  --mono:'DM Mono',monospace;
+  --serif:'Playfair Display',Georgia,serif;
+  --r:6px;
+  --r2:10px;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6;min-height:100vh}
+
+/* ─── TOPBAR ─── */
+.bar{position:fixed;top:0;left:0;right:0;z-index:300;height:46px;background:var(--ink);
+  display:flex;align-items:center;padding:0 18px;gap:14px}
+.bar-logo{font-family:var(--mono);font-size:11px;font-weight:500;background:#F4F2ED;
+  color:var(--ink);padding:3px 8px;border-radius:4px;letter-spacing:.02em;flex-shrink:0}
+.bar-title{font-size:13px;color:rgba(244,242,237,.85);letter-spacing:.01em}
+.bar-phase-pill{display:flex;align-items:center;gap:6px;padding:3px 10px;border-radius:12px;
+  font-size:11px;font-family:var(--mono);font-weight:500;transition:all .3s;margin-left:auto}
+.bar-phase-pill.draft  {background:rgba(245,158,11,.18);color:#FCD34D}
+.bar-phase-pill.review {background:rgba(59,130,246,.18);color:#93C5FD}
+.bar-phase-pill.final  {background:rgba(16,185,129,.18);color:#6EE7B7}
+.bar-phase-pill.idle   {background:rgba(255,255,255,.08);color:rgba(244,242,237,.4)}
+.phase-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.draft  .phase-dot{background:#FCD34D}
+.review .phase-dot{background:#93C5FD;animation:pulse-b 1.5s ease-in-out infinite}
+.final  .phase-dot{background:#6EE7B7}
+.idle   .phase-dot{background:rgba(244,242,237,.3)}
+@keyframes pulse-b{0%,100%{opacity:1}50%{opacity:.4}}
+.ollama-status{display:flex;align-items:center;gap:5px;font-size:11px;font-family:var(--mono);
+  color:rgba(244,242,237,.4)}
+.odot{width:6px;height:6px;border-radius:50%;background:#555;transition:background .3s}
+.odot.on{background:#4ADE80}.odot.off{background:#F87171}
+
+/* ─── LAYOUT ─── */
+.app{display:grid;grid-template-columns:380px 1fr;min-height:calc(100vh - 46px);margin-top:46px}
+
+/* ─── LEFT PANEL ─── */
+.left{background:var(--surface);border-right:1px solid var(--border);
+  position:sticky;top:46px;height:calc(100vh - 46px);overflow:hidden;
+  display:flex;flex-direction:column}
+.left-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.ltab{flex:1;padding:9px 12px;font-size:11.5px;font-weight:500;letter-spacing:.04em;
+  text-transform:uppercase;border:none;background:none;cursor:pointer;
+  color:var(--ink3);border-bottom:2px solid transparent;transition:all .15s;font-family:var(--font)}
+.ltab.on{color:var(--ink);border-bottom-color:var(--ink)}
+.left-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+
+/* ─── FORM ─── */
+.fl{font-size:10.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink2);display:block;margin-bottom:5px}
+input,select,textarea{width:100%;font-family:var(--font);font-size:13px;
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--r);
+  padding:7px 10px;color:var(--ink);outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);background:#fff}
+textarea{resize:vertical;min-height:200px;line-height:1.75;font-size:13px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wc{font-size:11px;color:var(--ink3);font-family:var(--mono);text-align:right;margin-top:2px}
+
+/* ─── TRANSCRIPT VIEWER ─── */
+.tx-view{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px;font-size:13px;line-height:1.9;white-space:pre-wrap;word-break:break-word;
+  flex:1;overflow-y:auto;min-height:0}
+.tx-view mark{border-radius:3px;padding:1px 0;cursor:pointer;transition:all .2s;
+  border-bottom:2px solid transparent}
+mark.pos{background:#C6F6D5;border-bottom-color:#22543D}
+mark.neg{background:#FED7D7;border-bottom-color:#9B2C2C}
+mark.neu{background:#FEFCBF;border-bottom-color:#744210}
+mark.dimmed{opacity:.3}
+mark.lit{opacity:1!important;outline:2px solid var(--blue);border-radius:3px}
+
+/* ─── PROGRESS ─── */
+.prog-wrap{display:none;flex-direction:column;gap:5px}
+.prog-wrap.show{display:flex}
+.prog-track{height:2px;background:var(--border);border-radius:1px;overflow:hidden}
+.prog-fill{height:100%;background:var(--blue);border-radius:1px;width:0;transition:width .5s}
+.prog-msg{font-size:11px;font-family:var(--mono);color:var(--ink3)}
+
+/* ─── RUN BUTTON ─── */
+.run-btn{background:var(--ink);color:#F4F2ED;border:none;border-radius:var(--r);
+  padding:10px 14px;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  transition:background .15s,transform .1s}
+.run-btn:hover{background:#252218}
+.run-btn:active{transform:scale(.99)}
+.run-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.spin{width:13px;height:13px;border:2px solid rgba(244,242,237,.25);
+  border-top-color:#F4F2ED;border-radius:50%;animation:spin .8s linear infinite;display:none}
+.run-btn.loading .spin{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.note-pill{background:var(--amber-bg);border:1px solid #E9C97A;border-radius:var(--r);
+  padding:8px 11px;font-size:12px;color:var(--amber);line-height:1.6}
+.note-pill b{font-weight:500}
+
+/* ─── RIGHT PANEL ─── */
+.right{overflow-y:auto;padding:20px 22px}
+
+/* ─── EMPTY ─── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:60vh;gap:12px;text-align:center;color:var(--ink3)}
+.e-ring{width:56px;height:56px;border-radius:50%;border:1.5px dashed var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:22px}
+.empty h2{font-family:var(--serif);font-size:18px;font-weight:400;color:var(--ink2)}
+.empty p{font-size:13px;max-width:260px;line-height:1.7}
+
+/* ─── PHASE BANNER ─── */
+.phase-banner{display:flex;align-items:center;gap:10px;padding:10px 14px;
+  border-radius:var(--r);margin-bottom:16px;font-size:13px;line-height:1.5}
+.phase-banner.draft{background:#FFFBEB;border:1px solid #FDE68A;color:var(--amber)}
+.phase-banner.review{background:var(--blue-bg);border:1px solid #BFDBFE;color:#1E3A8A}
+.phase-banner.final{background:var(--green-bg);border:1px solid #A7F3D0;color:var(--green)}
+.phase-banner .pb-icon{font-size:16px;flex-shrink:0}
+.phase-banner b{font-weight:500}
+
+/* ─── META STRIP ─── */
+.meta{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;font-family:var(--mono);
+  color:var(--ink3);background:var(--surface);border:1px solid var(--border-light);
+  border-radius:var(--r);padding:7px 11px;margin-bottom:14px}
+.meta span+span::before{content:'·';margin-right:8px}
+
+/* ─── SECTION ─── */
+.sec{margin-bottom:14px}
+.sec-hd{display:flex;align-items:center;gap:8px;padding-bottom:7px;margin-bottom:10px;
+  border-bottom:1px solid var(--border-light)}
+.sec-title{font-size:11px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:var(--ink)}
+.sec-count{font-size:11px;font-family:var(--mono);background:var(--surface2);
+  padding:1px 6px;border-radius:8px;color:var(--ink2)}
+.sec-btn{margin-left:auto;font-size:11px;font-family:var(--mono);color:var(--ink3);
+  cursor:pointer;padding:2px 7px;border-radius:3px;border:1px solid var(--border);
+  background:none;transition:background .1s}
+.sec-btn:hover{background:var(--surface2)}
+
+/* ─── LAYER BAR ─── */
+.layer-bar-wrap{background:var(--surface);border:1px solid var(--border-light);
+  border-radius:var(--r);padding:12px 14px;margin-bottom:10px;display:flex;
+  align-items:center;gap:12px}
+.lb-labels{display:flex;flex-direction:column;gap:4px;flex-shrink:0;font-size:11px;font-family:var(--mono)}
+.lb-l1{color:var(--ink2)}.lb-l2{color:var(--blue)}
+.lb-track{flex:1;height:10px;background:#E8E5DC;border-radius:5px;overflow:hidden;position:relative}
+.lb-l1-fill{height:100%;background:#D1CBC0;border-radius:5px 0 0 5px;transition:width .6s}
+.lb-l2-fill{position:absolute;right:0;top:0;height:100%;background:var(--blue);
+  border-radius:0 5px 5px 0;opacity:.6;transition:width .6s}
+.lb-pct{font-size:11px;font-family:var(--mono);flex-shrink:0}
+.lb-pct .l2{color:var(--blue);font-weight:500}
+
+/* ─── EVIDENCE ─── */
+.ev-card{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--r);
+  padding:11px 13px;margin-bottom:7px;display:grid;grid-template-columns:3px 1fr auto;
+  gap:9px;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+.ev-card:hover{border-color:var(--border);box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.ev-card.lit{border-color:var(--blue);box-shadow:0 0 0 2px rgba(24,73,198,.12)}
+.ev-card.accepted{border-color:#6EE7B7}
+.ev-card.rejected{opacity:.38;border-style:dashed}
+.ev-bar{border-radius:2px}
+.ev-bar.positive{background:var(--green)}
+.ev-bar.negative{background:var(--red)}
+.ev-bar.neutral{background:var(--ink3)}
+.ev-body{}
+.ev-quote{font-size:13px;font-style:italic;color:var(--ink);line-height:1.65;
+  background:var(--bg);padding:6px 9px;border-radius:4px;margin-bottom:6px}
+.ev-quote::before{content:'"';color:var(--ink3)}
+.ev-quote::after{content:'"';color:var(--ink3)}
+.ev-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px}
+.tag{font-size:10px;font-family:var(--mono);font-weight:500;padding:1px 6px;border-radius:3px}
+.t-pos{background:var(--green-bg);color:var(--green)}
+.t-neg{background:var(--red-bg);color:var(--red)}
+.t-neu{background:var(--surface2);color:var(--ink2)}
+.t-l1{background:#F0EDE6;color:#5A5750}
+.t-l2{background:var(--blue-bg);color:var(--blue)}
+.t-dim{background:var(--surface2);color:var(--ink2)}
+.ev-interp{font-size:12px;color:var(--ink2);line-height:1.6}
+.ev-acts{display:flex;flex-direction:column;gap:3px;flex-shrink:0;padding-top:1px}
+.ev-act{width:26px;height:26px;border-radius:4px;border:1px solid var(--border);
+  background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--ink2);transition:all .15s}
+.ev-act:hover{background:var(--surface2)}
+.ev-act.acc.on{background:var(--green-bg);border-color:#86EFAC;color:var(--green)}
+.ev-act.rej.on{background:var(--red-bg);border-color:#FCA5A5;color:var(--red)}
+
+/* ─── SCORE HIDDEN ─── */
+.score-hidden{background:var(--surface);border:2px dashed var(--border);
+  border-radius:var(--r2);padding:24px;text-align:center;margin-bottom:14px}
+.sh-lock{font-size:28px;margin-bottom:8px;opacity:.4}
+.sh-text{font-size:14px;color:var(--ink2);margin-bottom:4px;font-weight:500}
+.sh-sub{font-size:13px;color:var(--ink3);line-height:1.6}
+
+/* ─── GAPS ─── */
+.gap-item{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--r);
+  padding:11px 13px;margin-bottom:7px;display:grid;grid-template-columns:8px 1fr;
+  gap:11px;align-items:start}
+.gdot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.gdot.critical{background:var(--red)}
+.gdot.moderate{background:#F97316}
+.gdot.minor{background:var(--ink3)}
+.gdim{font-size:12px;font-weight:500;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+.sev{font-size:10px;font-family:var(--mono);padding:1px 5px;border-radius:2px}
+.sev.critical{background:var(--red-bg);color:var(--red)}
+.sev.moderate{background:#FFEDD5;color:#C2410C}
+.sev.minor{background:var(--surface2);color:var(--ink2)}
+.gdetail{font-size:12.5px;color:var(--ink2);line-height:1.6}
+
+/* ─── QUESTIONS ─── */
+.q-item{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--r);
+  padding:11px 13px;margin-bottom:7px}
+.q-num{font-size:10.5px;font-family:var(--mono);color:var(--ink3);margin-bottom:3px}
+.q-text{font-size:14px;font-weight:500;color:var(--ink);line-height:1.5;margin-bottom:5px}
+.q-look{font-size:12px;color:var(--ink3);font-style:italic;line-height:1.55}
+
+/* ─── BIAS FLAGS ─── */
+.bias-item{background:var(--amber-bg);border:1px solid #FDE68A;border-radius:var(--r);
+  padding:11px 13px;margin-bottom:7px}
+.btype{font-size:11px;font-family:var(--mono);font-weight:500;color:var(--amber);
+  text-transform:uppercase;margin-bottom:3px}
+.bev{font-size:13px;color:var(--ink);font-style:italic;margin-bottom:4px}
+.bimpact{font-size:12.5px;color:var(--ink2);line-height:1.6}
+
+/* ─── BEGIN DELIBERATION BUTTON ─── */
+.delib-cta{background:var(--blue);color:#fff;border:none;border-radius:var(--r);
+  padding:12px 16px;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  transition:background .15s,transform .1s;margin-bottom:14px}
+.delib-cta:hover{background:#1340A8}
+.delib-cta:active{transform:scale(.99)}
+
+/* ─── DELIBERATION PANEL ─── */
+.delib-panel{background:var(--surface);border:1.5px solid #BFDBFE;border-radius:var(--r2);
+  padding:20px;margin-bottom:14px}
+.delib-title{font-family:var(--serif);font-size:19px;font-weight:400;margin-bottom:4px;
+  color:var(--ink)}
+.delib-sub{font-size:13px;color:var(--ink2);margin-bottom:20px;line-height:1.6}
+.dq{margin-bottom:18px}
+.dq:last-of-type{margin-bottom:0}
+.dq-label{font-size:12px;font-weight:500;color:var(--ink);margin-bottom:3px;
+  display:flex;align-items:center;gap:7px}
+.dq-tag{font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:3px;font-weight:500}
+.dtag-boundary{background:#FEF9C3;color:#854D0E}
+.dtag-survive{background:#ECFDF5;color:#065F46}
+.dtag-bias{background:#FAF5FF;color:#6B21A8}
+.dtag-anchor{background:#FFF1F2;color:#9F1239}
+.dq-desc{font-size:12px;color:var(--ink3);margin-bottom:8px;line-height:1.5}
+.radio-group{display:flex;flex-direction:column;gap:6px}
+.radio-opt{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;
+  color:var(--ink2);padding:6px 10px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--bg);transition:all .15s}
+.radio-opt:hover{border-color:var(--blue);background:var(--blue-bg);color:var(--ink)}
+.radio-opt input[type=radio]{accent-color:var(--blue);flex-shrink:0}
+.radio-opt.selected{border-color:var(--blue);background:var(--blue-bg);
+  color:var(--blue);font-weight:500}
+.check-group{display:flex;flex-direction:column;gap:6px}
+.check-opt{display:flex;align-items:start;gap:8px;cursor:pointer;font-size:13px;
+  color:var(--ink2);padding:6px 10px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--bg);transition:all .15s}
+.check-opt:hover{border-color:var(--amber);background:var(--amber-bg);color:var(--ink)}
+.check-opt input[type=checkbox]{accent-color:var(--amber);flex-shrink:0;margin-top:2px}
+.check-opt.selected{border-color:var(--amber);background:var(--amber-bg);
+  color:var(--amber);font-weight:500}
+.gut-row{display:flex;align-items:center;gap:10px}
+.gut-row input[type=range]{flex:1;accent-color:var(--blue);height:4px}
+.gut-num{font-size:22px;font-family:var(--mono);font-weight:500;color:var(--blue);
+  min-width:30px;text-align:right}
+.gut-label{font-size:11px;color:var(--ink3);font-family:var(--mono);min-width:80px}
+.reveal-btn{background:var(--ink);color:#F4F2ED;border:none;border-radius:var(--r);
+  padding:11px 14px;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  transition:background .15s;margin-top:18px}
+.reveal-btn:hover:not(:disabled){background:#252218}
+.reveal-btn:disabled{opacity:.38;cursor:not-allowed}
+
+/* ─── SCORE REVEAL ─── */
+.score-card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r2);padding:18px;margin-bottom:14px}
+.score-top{display:grid;grid-template-columns:auto auto 1fr;gap:20px;align-items:center;
+  margin-bottom:14px}
+.score-gauge{display:flex;flex-direction:column;align-items:center;gap:4px}
+.gauge-num{font-family:var(--mono);font-size:36px;font-weight:500;line-height:1}
+.gauge-of{font-size:11px;font-family:var(--mono);color:var(--ink3)}
+.score-vs{display:flex;flex-direction:column;align-items:center;gap:4px}
+.vs-ai{font-size:11px;font-family:var(--mono);color:var(--ink3)}
+.vs-delib{font-size:11px;font-family:var(--mono)}
+.vs-arrow{font-size:18px;color:var(--ink3)}
+.score-info{}
+.score-name{font-family:var(--serif);font-size:20px;font-weight:400;line-height:1.2;margin-bottom:6px}
+.score-just{font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:6px}
+.score-conf{font-size:12px;color:var(--ink3);font-style:italic}
+.score-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.badge{font-size:11px;font-family:var(--mono);font-weight:500;padding:2px 8px;border-radius:3px}
+.b-need{background:var(--red-bg);color:var(--red)}
+.b-prod{background:var(--blue-bg);color:var(--blue)}
+.b-perf{background:var(--green-bg);color:var(--green)}
+.b-high{background:var(--green-bg);color:var(--green)}
+.b-medium{background:var(--amber-bg);color:var(--amber)}
+.b-low{background:var(--red-bg);color:var(--red)}
+
+/* ─── DIVERGENCE WARNING ─── */
+.div-warn{background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:var(--r2);
+  padding:14px 16px;margin-bottom:14px}
+.div-warn-hd{display:flex;align-items:center;gap:8px;font-weight:500;font-size:14px;
+  color:var(--amber);margin-bottom:8px}
+.div-warn-body{font-size:13px;color:var(--ink2);line-height:1.7}
+.div-reasons{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.div-reason{font-size:12px;color:var(--ink2);padding-left:12px;position:relative;line-height:1.5}
+.div-reason::before{content:'·';position:absolute;left:0;color:var(--amber)}
+.key-ev-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.key-ev-item{font-size:12px;background:var(--surface);border:1px solid #FDE68A;
+  border-radius:var(--r);padding:6px 10px;color:var(--ink2);font-style:italic;cursor:pointer}
+.key-ev-item:hover{background:#FFF9E6}
+
+/* ─── FINALIZE ─── */
+.fin-section{background:var(--surface);border:1px solid var(--border-light);
+  border-radius:var(--r2);padding:16px;margin-bottom:14px}
+.fin-title{font-size:12px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink2);margin-bottom:12px}
+.fin-score-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.fin-score-row label{font-size:13px;color:var(--ink);font-weight:500;white-space:nowrap}
+.fin-score-num{font-size:22px;font-family:var(--mono);font-weight:500;color:var(--ink);
+  min-width:28px}
+.fin-score-row input[type=range]{flex:1;accent-color:var(--ink)}
+.fin-notes textarea{min-height:72px;font-size:13px;margin-bottom:10px}
+.fin-btn{background:var(--green);color:#fff;border:none;border-radius:var(--r);
+  padding:11px 14px;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;
+  width:100%;transition:background .15s}
+.fin-btn:hover{background:#0F3D20}
+
+/* ─── FINAL REPORT ─── */
+.final-report{background:var(--surface);border:1px solid var(--border-light);
+  border-radius:var(--r2);padding:20px;margin-bottom:14px}
+.fr-head{display:flex;align-items:start;gap:16px;margin-bottom:18px}
+.fr-score-big{font-family:var(--mono);font-size:48px;font-weight:500;line-height:1;flex-shrink:0}
+.fr-meta{flex:1}
+.fr-name{font-family:var(--serif);font-size:22px;font-weight:400;margin-bottom:4px}
+.fr-sub{font-size:13px;color:var(--ink2)}
+.fr-sec{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border-light)}
+.fr-sec:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.fr-sec-title{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink2);margin-bottom:8px}
+.fr-ev-item{font-size:13px;color:var(--ink2);padding:6px 0;border-bottom:1px solid var(--border-light)}
+.fr-ev-item:last-child{border-bottom:none}
+.fr-copy-btn{background:var(--ink);color:#F4F2ED;border:none;border-radius:var(--r);
+  padding:9px 16px;font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;
+  transition:background .15s}
+.fr-copy-btn:hover{background:#252218}
+
+/* ─── KPI GRID ─── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.kpi-card{background:var(--surface);border:1px solid var(--border-light);
+  border-radius:var(--r);padding:11px 13px}
+.kpi-name{font-size:13px;font-weight:500;color:var(--blue);margin-bottom:3px}
+.kpi-ev{font-size:12px;color:var(--ink2);line-height:1.55;margin-bottom:5px}
+.kpi-type{font-size:11px;font-family:var(--mono)}
+.kpi-sys{color:var(--green)}.kpi-per{color:var(--amber)}
+.kpi-note{font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.5}
+.no-items{font-size:13px;color:var(--ink3);font-style:italic;padding:8px 0;text-align:center;
+  background:var(--surface);border:1px dashed var(--border);border-radius:var(--r)}
+
+/* ─── ERROR ─── */
+.err-box{background:var(--red-bg);border:1px solid #FCA5A5;border-radius:var(--r2);
+  padding:14px 18px;margin-bottom:14px}
+.err-box h3{font-size:14px;font-weight:500;color:var(--red);margin-bottom:5px}
+.err-box p{font-size:13px;color:#7F1D1D;line-height:1.6;font-family:var(--mono);white-space:pre-wrap}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <span class="bar-logo">DT</span>
+  <span class="bar-title">Trinethra · Supervisor Feedback Analyzer</span>
+  <div class="bar-phase-pill idle" id="phase-pill">
+    <span class="phase-dot"></span>
+    <span id="phase-text">Ready</span>
+  </div>
+  <div class="ollama-status">
+    <span class="odot" id="odot"></span>
+    <span id="olabel">checking…</span>
+  </div>
+</header>
+
+<div class="app">
+  <!-- Left Panel -->
+  <aside class="left">
+    <div class="left-tabs">
+      <button class="ltab on" id="tab-in"  onclick="showTab('input')">Input</button>
+      <button class="ltab"    id="tab-tx"  onclick="showTab('tx')">Transcript</button>
+    </div>
+
+    <!-- Input tab -->
+    <div class="left-body" id="pane-input">
+      <div>
+        <label class="fl">Load sample</label>
+        <select id="sample-sel"><option value="">— choose a sample —</option></select>
+      </div>
+      <div class="two">
+        <div><label class="fl">Fellow</label><input type="text" id="fellow" placeholder="e.g. Karthik"></div>
+        <div><label class="fl">Client</label><input type="text" id="client" placeholder="e.g. Veerabhadra"></div>
+      </div>
+      <div><label class="fl">Supervisor</label><input type="text" id="supervisor" placeholder="e.g. Mr. Suresh Patil (MD)"></div>
+      <div>
+        <label class="fl">Transcript</label>
+        <textarea id="tx" placeholder="Paste full supervisor feedback…" oninput="onTx()"></textarea>
+        <div class="wc" id="wc">0 words</div>
+      </div>
+      <div><label class="fl">Ollama model</label>
+        <select id="model-sel">
+          <option value="llama3.2">llama3.2 (recommended)</option>
+          <option value="mistral">mistral</option>
+          <option value="phi3">phi3</option>
+          <option value="gemma2">gemma2</option>
+        </select>
+      </div>
+      <div class="prog-wrap" id="prog">
+        <div class="prog-track"><div class="prog-fill" id="pfill"></div></div>
+        <div class="prog-msg" id="pmsg">Starting…</div>
+      </div>
+      <button class="run-btn" id="run-btn" onclick="runAnalysis()">
+        <div class="spin"></div><span id="btn-lbl">Run Analysis</span>
+      </button>
+      <div class="note-pill">
+        <b>How this works:</b> You'll see the evidence first — the AI's score stays hidden. After you form your own view, both scores appear side by side. You make the final call.
+      </div>
+    </div>
+
+    <!-- Transcript tab -->
+    <div class="left-body" id="pane-tx" style="display:none;flex:1;min-height:0">
+      <div style="font-size:12px;color:var(--ink3);display:flex;gap:12px;flex-shrink:0">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#C6F6D5;border-radius:2px;display:inline-block"></span>positive</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#FED7D7;border-radius:2px;display:inline-block"></span>negative</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#FEFCBF;border-radius:2px;display:inline-block"></span>neutral</span>
+      </div>
+      <div class="tx-view" id="tx-view">
+        <span style="color:var(--ink3);font-style:italic">Run analysis first — quotes will be highlighted here.</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Right Panel -->
+  <main class="right" id="right">
+    <div class="empty" id="empty">
+      <div class="e-ring">◉</div>
+      <h2>No analysis yet</h2>
+      <p>Paste a supervisor transcript and click Run Analysis to begin.</p>
+    </div>
+    <div id="output" style="display:none"></div>
+  </main>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+
+// ── State ────────────────────────────────────────────────────────────────────
+const S = {
+  phase: 'idle',       // idle | loading | draft | deliberating | finalizing | done
+  analysis: null,
+  evStates: [],        // 'pending'|'accepted'|'rejected'
+  delib: { q1:null, q2:null, q3:[], q4:5 },
+  deliberationResult: null,
+  finalScore: 5,
+  finalNotes: '',
+};
+
+const dimLabels = {
+  driving_execution:'Driving Execution',
+  systems_building:'Systems Building',
+  kpi_impact:'KPI Impact',
+  change_management:'Change Management'
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const $ = id => document.getElementById(id);
+function bandClass(v){ return v<=3?'need':v<=6?'prod':'perf' }
+function bandLabel(v){ return v<=3?'Need Attention':v<=6?'Productivity':'Performance' }
+function scoreColor(v){ return v<=3?'#8B1C1C':v<=6?'#1849C6':'#145A30' }
+
+function setPhase(p, label){
+  S.phase = p;
+  const pill = $('phase-pill');
+  pill.className = `bar-phase-pill ${p}`;
+  $('phase-text').textContent = label;
+}
+
+// ── Health ────────────────────────────────────────────────────────────────────
+async function checkHealth(){
+  try{
+    const r = await fetch(`${API}/api/health`);
+    const d = await r.json();
+    const on = d.ollama==='connected';
+    $('odot').className = 'odot '+(on?'on':'off');
+    $('olabel').textContent = on ? `Ollama · ${d.models?.length||'?'} models` : 'Ollama offline';
+  } catch {
+    $('odot').className='odot off'; $('olabel').textContent='Backend offline';
+  }
+}
+
+// ── Samples ───────────────────────────────────────────────────────────────────
+async function loadSamples(){
+  try{
+    const samples = await fetch(`${API}/api/samples`).then(r=>r.json());
+    const sel = $('sample-sel');
+    samples.forEach(s=>{
+      const o = document.createElement('option');
+      o.value=s.id; o.textContent=s.label;
+      o.dataset.fellow=s.fellow_name; o.dataset.client=s.client_name;
+      o.dataset.sup=s.supervisor_name; o.dataset.tx=s.transcript;
+      sel.appendChild(o);
+    });
+    sel.addEventListener('change',()=>{
+      const o=sel.selectedOptions[0]; if(!o.value) return;
+      $('tx').value=o.dataset.tx||'';
+      $('fellow').value=o.dataset.fellow||'';
+      $('client').value=o.dataset.client||'';
+      $('supervisor').value=o.dataset.sup||'';
+      onTx();
+    });
+  } catch{}
+}
+
+function onTx(){
+  const w=$('tx').value.trim().split(/\s+/).filter(Boolean).length;
+  $('wc').textContent=`${w} words`;
+}
+
+function showTab(t){
+  $('pane-input').style.display=t==='input'?'flex':'none';
+  $('pane-tx').style.display=t==='tx'?'flex':'none';
+  $('tab-in').classList.toggle('on',t==='input');
+  $('tab-tx').classList.toggle('on',t==='tx');
+}
+
+// ── Run Analysis ──────────────────────────────────────────────────────────────
+async function runAnalysis(){
+  const tx = $('tx').value.trim();
+  const fellow = $('fellow').value.trim()||'the Fellow';
+  const client = $('client').value.trim()||'the client';
+  const supervisor = $('supervisor').value.trim()||'the supervisor';
+  const model = $('model-sel').value;
+  if(!tx){ alert('Please paste a transcript first.'); return; }
+
+  const btn = $('run-btn');
+  btn.classList.add('loading'); btn.disabled=true;
+  $('btn-lbl').textContent='Analyzing…';
+  $('empty').style.display='none';
+  $('output').style.display='none';
+  $('prog').classList.add('show');
+  S.analysis=null; S.evStates=[]; S.delib={q1:null,q2:null,q3:[],q4:5};
+  S.deliberationResult=null;
+  setPhase('loading','Analyzing…');
+
+  function setP(pct,msg){ $('pfill').style.width=pct+'%'; $('pmsg').textContent=msg; }
+
+  try{
+    const resp = await fetch(`${API}/api/analyze/stream`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({transcript:tx,fellow_name:fellow,client_name:client,supervisor_name:supervisor,model})
+    });
+    if(!resp.ok){ const e=await resp.json(); renderError(e.detail||'Error'); return; }
+
+    const reader=resp.body.getReader(); const dec=new TextDecoder(); let buf='';
+    while(true){
+      const {done,value}=await reader.read(); if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      const parts=buf.split('\n\n'); buf=parts.pop();
+      for(const part of parts){
+        if(!part.trim()) continue;
+        let event='message',data='';
+        for(const l of part.split('\n')){
+          if(l.startsWith('event:')) event=l.slice(6).trim();
+          if(l.startsWith('data:')) data=l.slice(5).trim();
+        }
+        if(event==='status'){
+          try{
+            const d=JSON.parse(data);
+            const pmap={start:8,prompting:18,generating:30,parsing:90,retry:85,done:100};
+            setP(pmap[d.phase]||50, d.message||'');
+          } catch{}
+        } else if(event==='progress'){
+          try{
+            const d=JSON.parse(data);
+            const p=Math.min(30+Math.floor((d.tokens||0)/30),88);
+            setP(p,`Generating… ${d.tokens||''} tokens`);
+          } catch{}
+        } else if(event==='error'){
+          try{ const d=JSON.parse(data); renderError(d.message||data); } catch{ renderError(data); }
+        } else if(event==='result'){
+          try{
+            S.analysis=JSON.parse(data);
+            S.evStates=new Array((S.analysis.evidence||[]).length).fill('pending');
+            S.finalScore=S.analysis.score?.value||5;
+            renderDraftPhase();
+            buildHighlights();
+            setPhase('draft','Phase 1 — AI Draft');
+          } catch(e){ renderError('Parse error: '+e.message); }
+        }
+      }
+    }
+  } catch(e){ renderError(`Connection error: ${e.message}`); }
+  finally{
+    btn.classList.remove('loading'); btn.disabled=false;
+    $('btn-lbl').textContent='Run Analysis';
+    $('prog').classList.remove('show');
+  }
+}
+
+// ── Transcript Highlights ─────────────────────────────────────────────────────
+function buildHighlights(){
+  const raw=$('tx').value;
+  if(!raw||!S.analysis?.evidence?.length){ $('tx-view').textContent=raw||''; return; }
+  const marks=[];
+  S.analysis.evidence.forEach((ev,i)=>{
+    const q=(ev.quote||'').replace(/[""'']/g,'"').trim();
+    if(!q) return;
+    const idx=raw.indexOf(q);
+    if(idx>=0) marks.push({start:idx,end:idx+q.length,signal:ev.signal||'neutral',idx:i});
+    else{
+      const sub=q.slice(0,50); const si=raw.indexOf(sub);
+      if(si>=0) marks.push({start:si,end:si+q.length,signal:ev.signal||'neutral',idx:i});
+    }
+  });
+  marks.sort((a,b)=>a.start-b.start);
+  const merged=[];
+  for(const m of marks){
+    if(merged.length&&m.start<merged[merged.length-1].end){
+      merged[merged.length-1].end=Math.max(merged[merged.length-1].end,m.end);
+      merged[merged.length-1].indices.push(m.idx);
+    } else merged.push({...m,indices:[m.idx]});
+  }
+  let html='',pos=0;
+  for(const m of merged){
+    html+=esc(raw.slice(pos,m.start));
+    const cls=m.signal==='positive'?'pos':m.signal==='negative'?'neg':'neu';
+    html+=`<mark class="${cls}" data-ev="${m.indices.join(',')}" onclick="txMarkClick(${m.indices[0]})">${esc(raw.slice(m.start,m.end))}</mark>`;
+    pos=m.end;
+  }
+  html+=esc(raw.slice(pos));
+  $('tx-view').innerHTML=html;
+}
+
+function txMarkClick(idx){
+  const card=$(`.ev-card[data-idx="${idx}"]`);
+  if(!card) return;
+  document.querySelectorAll('.ev-card.lit').forEach(c=>c.classList.remove('lit'));
+  card.classList.add('lit');
+  card.scrollIntoView({behavior:'smooth',block:'center'});
+  dimMarks(idx);
+}
+
+function dimMarks(targetIdx){
+  document.querySelectorAll('.tx-view mark').forEach(m=>{
+    const evs=m.dataset.ev.split(',').map(Number);
+    m.classList.toggle('lit',evs.includes(targetIdx));
+    m.classList.toggle('dimmed',!evs.includes(targetIdx));
+  });
+  setTimeout(()=>document.querySelectorAll('.tx-view mark').forEach(m=>{
+    m.classList.remove('lit','dimmed');
+  }),2500);
+}
+
+function highlightFromCard(idx){
+  showTab('tx');
+  setTimeout(()=>dimMarks(idx),150);
+}
+
+// ── Phase 1: Draft ────────────────────────────────────────────────────────────
+function renderDraftPhase(){
+  const d=S.analysis; if(!d) return;
+  const meta=d.meta||{};
+  let h='';
+
+  h+=`<div class="phase-banner draft"><span class="pb-icon">✦</span>
+    <div><b>AI draft ready.</b> Read the evidence below carefully. The score is hidden — you'll form your own view first, then see what the AI thinks. Scroll to the bottom when ready.</div></div>`;
+
+  if(meta.fellow_name||meta.client){
+    h+=`<div class="meta">
+      ${meta.fellow_name?`<span>${esc(meta.fellow_name)}${meta.client?' @ '+esc(meta.client):''}</span>`:''}
+      ${meta.model?`<span>Model: ${esc(meta.model)}</span>`:''}
+      ${meta.transcript_words?`<span>${meta.transcript_words} words</span>`:''}
+    </div>`;
+  }
+
+  // Layer bar
+  const ev=d.evidence||[];
+  const l1=ev.filter(e=>e.layer==='layer_1').length;
+  const l2=ev.filter(e=>e.layer==='layer_2').length;
+  const total=ev.length||1;
+  const l2pct=Math.round(l2/total*100);
+  const l1pct=100-l2pct;
+  h+=`<div class="layer-bar-wrap">
+    <div class="lb-labels">
+      <span class="lb-l1">Layer 1 · ${l1}</span>
+      <span class="lb-l2">Layer 2 · ${l2}</span>
+    </div>
+    <div class="lb-track">
+      <div class="lb-l1-fill" style="width:${l1pct}%"></div>
+      <div class="lb-l2-fill" style="width:${l2pct}%"></div>
+    </div>
+    <div class="lb-pct"><span class="l2">${l2pct}%</span> systems</div>
+  </div>`;
+
+  // Score hidden
+  h+=`<div class="score-hidden">
+    <div class="sh-lock">🔒</div>
+    <div class="sh-text">Score hidden</div>
+    <div class="sh-sub">Read the evidence above first. Your own read of the transcript matters — seeing a number too early makes it harder to think independently.</div>
+  </div>`;
+
+  // Evidence
+  h+=`<div class="sec">
+    <div class="sec-hd">
+      <span class="sec-title">Extracted Evidence</span>
+      <span class="sec-count">${ev.length} quotes</span>
+      <button class="sec-btn" onclick="acceptAll()">Accept all</button>
+    </div>`;
+  ev.forEach((e,i)=>{
+    const sig=(e.signal||'neutral').toLowerCase();
+    const layer=(e.layer||'').toLowerCase().replace('_','');
+    const layerTag=layer==='layer2'?`<span class="tag t-l2">Layer 2 · Systems</span>`:
+                   layer==='layer1'?`<span class="tag t-l1">Layer 1 · Execution</span>`:'';
+    const dim=dimLabels[e.dimension]||e.dimension||'';
+    h+=`<div class="ev-card" id="ev-${i}" data-idx="${i}" onclick="evCardClick(${i})">
+      <div class="ev-bar ${sig}"></div>
+      <div class="ev-body">
+        <div class="ev-quote">${esc(e.quote||'')}</div>
+        <div class="ev-tags">
+          <span class="tag t-${sig}">${sig}</span>
+          ${layerTag}
+          ${dim?`<span class="tag t-dim">${esc(dim)}</span>`:''}
+        </div>
+        <div class="ev-interp" id="ev-interp-${i}">${esc(e.interpretation||'')}</div>
+      </div>
+      <div class="ev-acts" onclick="event.stopPropagation()">
+        <button class="ev-act acc" id="acc-${i}" title="Accept" onclick="evToggle(${i},'accepted')">✓</button>
+        <button class="ev-act rej" id="rej-${i}" title="Reject" onclick="evToggle(${i},'rejected')">✕</button>
+      </div>
+    </div>`;
+  });
+  h+=`</div>`;
+
+  // Gaps
+  const gaps=d.gaps||[];
+  h+=`<div class="sec"><div class="sec-hd"><span class="sec-title">Gap Analysis</span><span class="sec-count">${gaps.length}</span></div>`;
+  if(!gaps.length) h+=`<div class="no-items">No significant gaps detected</div>`;
+  gaps.forEach(g=>{
+    const sev=(g.severity||'minor').toLowerCase();
+    const dim=dimLabels[g.dimension]||g.dimension||'';
+    h+=`<div class="gap-item"><div class="gdot ${sev}"></div><div>
+      <div class="gdim">${esc(dim)}<span class="sev ${sev}">${sev}</span></div>
+      <div class="gdetail">${esc(g.detail||'')}</div>
+    </div></div>`;
+  });
+  h+=`</div>`;
+
+  // Bias flags (shown early — before score — so intern sees them before deliberating)
+  const biases=d.bias_flags||[];
+  if(biases.length){
+    h+=`<div class="sec"><div class="sec-hd"><span class="sec-title">Supervisor Bias Flags</span><span class="sec-count">${biases.length} detected</span></div>`;
+    biases.forEach(b=>{
+      h+=`<div class="bias-item">
+        <div class="btype">${esc((b.bias_type||'').replace(/_/g,' '))}</div>
+        <div class="bev">"${esc(b.evidence_from_transcript||'')}"</div>
+        <div class="bimpact">${esc(b.score_impact||'')}</div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+
+  // Follow-up questions
+  const qs=d.follow_up_questions||[];
+  h+=`<div class="sec"><div class="sec-hd"><span class="sec-title">Follow-up Questions</span><span class="sec-count">${qs.length}</span></div>`;
+  qs.forEach((q,i)=>{
+    const dim=dimLabels[q.target_gap]||q.target_gap||'';
+    h+=`<div class="q-item">
+      <div class="q-num">Q${i+1} · ${esc(dim)}</div>
+      <div class="q-text">${esc(q.question||'')}</div>
+      ${q.looking_for?`<div class="q-look">Looking for: ${esc(q.looking_for)}</div>`:''}
+    </div>`;
+  });
+  h+=`</div>`;
+
+  // Begin deliberation button
+  h+=`<button class="delib-cta" onclick="showDelib()">
+    Reflect before the score is revealed →
+  </button>`;
+
+  // Deliberation panel (hidden initially)
+  h+=renderDelibPanel();
+
+  const out=$('output');
+  out.innerHTML=h;
+  out.style.display='block';
+  $('empty').style.display='none';
+}
+
+// ── Deliberation Panel ────────────────────────────────────────────────────────
+function renderDelibPanel(){
+  return `<div class="delib-panel" id="delib-panel" style="display:none">
+    <div class="delib-title">Before we show you the score</div>
+    <div class="delib-sub">Take two minutes to reflect on what you just read. Answer these four questions in your own words — then we'll show you what the AI thinks and where the two assessments agree or differ. Your judgment matters more than the AI's.</div>
+
+    <!-- Q1: did Fellow bring anything new -->
+    <div class="dq">
+      <div class="dq-label">Reading between the lines</div>
+      <div class="dq-desc">Based on the transcript — did the Fellow ever bring something to the supervisor's attention that the supervisor hadn't noticed or asked about? A problem they spotted themselves, a pattern they flagged, an observation they volunteered?</div>
+      <div class="radio-group" id="q1-group">
+        <label class="radio-opt" onclick="selectRadio('q1','yes',this)"><input type="radio" name="q1" value="yes">Yes — there's a clear moment where the Fellow led, not followed</label>
+        <label class="radio-opt" onclick="selectRadio('q1','possibly',this)"><input type="radio" name="q1" value="possibly">Hard to tell — the transcript doesn't make it clear who initiated</label>
+        <label class="radio-opt" onclick="selectRadio('q1','no',this)"><input type="radio" name="q1" value="no">No — everything described was something the supervisor assigned</label>
+      </div>
+    </div>
+
+    <!-- Q2: what happens when they leave -->
+    <div class="dq">
+      <div class="dq-label">The leaving question</div>
+      <div class="dq-desc">Imagine the Fellow's last day is tomorrow. Based on what the supervisor described — what actually remains? Are there processes, trackers, or habits in place that the team would continue using? Or does everything the Fellow "owns" just stop?</div>
+      <div class="radio-group" id="q2-group">
+        <label class="radio-opt" onclick="selectRadio('q2','keeps_running',this)"><input type="radio" name="q2" value="keeps_running">Things would keep running — the Fellow built something that outlasts them</label>
+        <label class="radio-opt" onclick="selectRadio('q2','mixed',this)"><input type="radio" name="q2" value="mixed">Some things would continue, some would fall apart without them</label>
+        <label class="radio-opt" onclick="selectRadio('q2','everything_stops',this)"><input type="radio" name="q2" value="everything_stops">Most things would stop — the work lives in the Fellow, not the organization</label>
+      </div>
+    </div>
+
+    <!-- Q3: how does the supervisor sound -->
+    <div class="dq">
+      <div class="dq-label">How does the supervisor sound to you?</div>
+      <div class="dq-desc">Supervisors are honest, but they have blind spots. Does any of the following feel true about this particular feedback? Select everything that applies — or none if the feedback feels measured and balanced.</div>
+      <div class="check-group" id="q3-group">
+        <label class="check-opt" onclick="toggleCheck('helpfulness_bias',this)"><input type="checkbox" value="helpfulness_bias">"They've taken so much off my plate" — the supervisor is relieved, which may be inflating the score</label>
+        <label class="check-opt" onclick="toggleCheck('presence_bias',this)"><input type="checkbox" value="presence_bias">"Always on the floor" — being physically present is being valued over quieter, deeper work</label>
+        <label class="check-opt" onclick="toggleCheck('halo_positive',this)"><input type="checkbox" value="halo_positive">One impressive story is doing a lot of heavy lifting for an otherwise thin assessment</label>
+        <label class="check-opt" onclick="toggleCheck('halo_negative',this)"><input type="checkbox" value="halo_negative">One criticism is overshadowing real contributions that are mentioned but downplayed</label>
+        <label class="check-opt" onclick="toggleCheck('dependency_trap',this)"><input type="checkbox" value="dependency_trap">The supervisor would be in trouble if the Fellow left — the Fellow is a crutch, not a builder</label>
+        <label class="check-opt" onclick="toggleCheck('none',this)"><input type="checkbox" value="none">None of these — the feedback feels fair and grounded</label>
+      </div>
+    </div>
+
+    <!-- Q4: gut score -->
+    <div class="dq">
+      <div class="dq-label">Your honest read</div>
+      <div class="dq-desc">Set aside the rubric for a moment. After reading this transcript and the evidence above — where does this Fellow land for you? Move the slider to the number that feels right. You'll see the AI's score right after this.</div>
+      <div class="gut-row">
+        <span style="font-size:12px;color:var(--ink3);font-family:var(--mono)">1</span>
+        <input type="range" min="1" max="10" value="5" id="gut-slider" oninput="onGut(this.value)">
+        <span style="font-size:12px;color:var(--ink3);font-family:var(--mono)">10</span>
+        <span class="gut-num" id="gut-num">5</span>
+        <span class="gut-label" id="gut-lbl">Consistent Performer</span>
+      </div>
+    </div>
+
+    <button class="reveal-btn" id="reveal-btn" onclick="runDeliberation()" disabled>
+      Show me the AI's assessment →
+    </button>
+  </div>`;
+}
+
+function showDelib(){
+  const panel=$('delib-panel');
+  if(!panel) return;
+  panel.style.display='block';
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
+  setPhase('review','Phase 2 — Deliberation');
+  document.querySelector('.delib-cta')?.style.setProperty('display','none');
+}
+
+function selectRadio(qname, val, el){
+  S.delib[qname]=val;
+  document.querySelectorAll(`#${qname}-group .radio-opt`).forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  checkDelibReady();
+}
+
+function toggleCheck(val, el){
+  if(val==='none'){
+    S.delib.q3=[];
+    document.querySelectorAll('#q3-group .check-opt').forEach(o=>{
+      o.classList.remove('selected');
+      o.querySelector('input').checked=false;
+    });
+    el.classList.add('selected');
+    el.querySelector('input').checked=true;
+    S.delib.q3=['none'];
+  } else {
+    S.delib.q3=S.delib.q3.filter(v=>v!=='none');
+    const noneEl=document.querySelector('#q3-group .check-opt:last-child');
+    if(noneEl){ noneEl.classList.remove('selected'); noneEl.querySelector('input').checked=false; }
+    if(S.delib.q3.includes(val)){
+      S.delib.q3=S.delib.q3.filter(v=>v!==val);
+      el.classList.remove('selected');
+    } else {
+      S.delib.q3.push(val);
+      el.classList.add('selected');
+    }
+  }
+  checkDelibReady();
+}
+
+const gutLabels=['','Not Interested','Lacks Discipline','Directionless','Inconsistent','Consistent Performer','Reliable & Productive','Problem Identifier','Problem Solver','Innovative','Exceptional'];
+function onGut(v){
+  S.delib.q4=parseInt(v);
+  $('gut-num').textContent=v;
+  $('gut-lbl').textContent=gutLabels[parseInt(v)]||'';
+  checkDelibReady();
+}
+
+function checkDelibReady(){
+  const ready = S.delib.q1 && S.delib.q2 && (S.delib.q3.length>0);
+  const btn=$('reveal-btn');
+  if(btn) btn.disabled=!ready;
+}
+
+// ── Run Deliberation ──────────────────────────────────────────────────────────
+async function runDeliberation(){
+  const btn=$('reveal-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Computing…'; }
+
+  try{
+    const resp=await fetch(`${API}/api/deliberate`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        analysis: S.analysis,
+        q1: S.delib.q1, q2: S.delib.q2,
+        q3: S.delib.q3.filter(v=>v!=='none'),
+        q4: S.delib.q4,
+        fellow_name: S.analysis?.meta?.fellow_name||'the Fellow'
+      })
+    });
+    if(!resp.ok){ const e=await resp.json(); alert(e.detail||'Deliberation failed'); return; }
+    S.deliberationResult=await resp.json();
+    S.finalScore=S.deliberationResult.deliberation_score||S.analysis?.score?.value||5;
+    renderScoreReveal();
+    setPhase('final','Phase 3 — Score Reveal');
+  } catch(e){
+    // Compute locally as fallback
+    const ds=computeDelibScoreLocal();
+    S.deliberationResult={
+      deliberation_score:ds, ai_score:S.analysis?.score?.value||5,
+      divergence:Math.abs(ds-(S.analysis?.score?.value||5)),
+      reasons:['Computed locally (backend unavailable)'], calibration_note:''
+    };
+    S.finalScore=ds;
+    renderScoreReveal();
+    setPhase('final','Phase 3 — Score Reveal');
+  }
+}
+
+function computeDelibScoreLocal(){
+  const ai=S.analysis?.score?.value||5;
+  let s=ai;
+  if(S.delib.q1==='yes') s=Math.max(s,7);
+  else if(S.delib.q1==='no') s=Math.min(s,6);
+  if(S.delib.q2==='keeps_running') s=Math.max(s,7);
+  else if(S.delib.q2==='everything_stops') s=Math.min(s,6);
+  const q3=S.delib.q3.filter(v=>v!=='none');
+  if(q3.includes('helpfulness_bias')) s-=1;
+  if(q3.includes('presence_bias')) s+=0.5;
+  if(q3.includes('halo_positive')) s-=0.75;
+  if(q3.includes('halo_negative')) s+=0.75;
+  if(q3.includes('dependency_trap')) s-=1;
+  s=s*0.65+S.delib.q4*0.35;
+  return Math.max(1,Math.min(10,Math.round(s)));
+}
+
+// ── Phase 3: Score Reveal ──────────────────────────────────────────────────────
+function renderScoreReveal(){
+  const out=$('output');
+  const d=S.analysis;
+  const dr=S.deliberationResult;
+  const sc=d?.score||{};
+  const aiScore=sc.value||0;
+  const delibScore=dr?.deliberation_score||aiScore;
+  const divergence=dr?.divergence||0;
+  const bnd=bandClass(aiScore);
+  const col=scoreColor(aiScore);
+
+  // Find delib panel, insert score reveal after it
+  const existing=out.innerHTML;
+
+  // Build score reveal HTML
+  let reveal='';
+
+  // Phase banner
+  reveal+=`<div class="phase-banner final" id="reveal-anchor"><span class="pb-icon">◉</span>
+    <div><b>Here's what the AI thinks.</b> Compare it to your own read. If there's a gap, the note below will explain why. You set the final score — not the AI.</div>
+  </div>`;
+
+  // Divergence warning
+  if(divergence>=2){
+    const note=dr?.calibration_note||`Your deliberation suggests ${delibScore}. The AI suggested ${aiScore}. Review the key evidence before finalizing.`;
+    reveal+=`<div class="div-warn">
+      <div class="div-warn-hd">⚠ Your read and the AI's read differ by ${divergence} points — worth a second look</div>
+      <div class="div-warn-body">${esc(note)}</div>
+      ${(dr?.reasons||[]).length?`<div class="div-reasons">${(dr.reasons||[]).map(r=>`<div class="div-reason">${esc(r)}</div>`).join('')}</div>`:''}
+      ${(dr?.key_evidence_indices||[]).length?`<div class="key-ev-list">
+        ${(dr.key_evidence_indices||[]).map(i=>{
+          const ev=d?.evidence?.[i];
+          return ev?`<div class="key-ev-item" onclick="highlightFromCard(${i})">
+            Evidence #${i+1}: "${esc((ev.quote||'').slice(0,70))}…" — click to highlight
+          </div>`:'';
+        }).join('')}
+      </div>`:''}
+    </div>`;
+  }
+
+  // Score card
+  reveal+=`<div class="score-card">
+    <div class="score-top">
+      <div class="score-gauge">
+        <svg width="76" height="76" viewBox="0 0 76 76">
+          <circle cx="38" cy="38" r="30" fill="none" stroke="${col}" stroke-width="2" opacity=".2"/>
+          <circle cx="38" cy="38" r="30" fill="none" stroke="${col}" stroke-width="3"
+            stroke-dasharray="${Math.PI*60*(aiScore/10)} ${Math.PI*60}"
+            stroke-dashoffset="${Math.PI*60*0.25}" stroke-linecap="round" transform="rotate(-90 38 38)"/>
+          <text x="38" y="34" text-anchor="middle" font-family="DM Mono,monospace" font-size="19" font-weight="500" fill="${col}">${aiScore}</text>
+          <text x="38" y="48" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="9" fill="${col}" opacity=".6">AI score</text>
+        </svg>
+        <div class="gauge-of">out of 10</div>
+      </div>
+      ${delibScore!==aiScore?`<div class="score-vs">
+        <span class="vs-ai" style="color:${col}">AI: ${aiScore}</span>
+        <span class="vs-arrow">↔</span>
+        <span class="vs-delib" style="color:${scoreColor(delibScore)}">You: ${delibScore}</span>
+      </div>`:''}
+      <div class="score-info">
+        <div class="score-name">${esc(sc.label||'')}</div>
+        <div class="score-badges">
+          <span class="badge b-${bnd}">${bandLabel(aiScore)}</span>
+          <span class="badge b-${sc.confidence||'low'}">${sc.confidence||'?'} confidence</span>
+        </div>
+        <div class="score-just">${esc(sc.justification||'')}</div>
+        ${sc.confidence_reason?`<div class="score-conf">⚠ ${esc(sc.confidence_reason)}</div>`:''}
+      </div>
+    </div>
+  </div>`;
+
+  // KPI mapping
+  const kpis=d?.kpi_mapping||[];
+  reveal+=`<div class="sec"><div class="sec-hd"><span class="sec-title">KPI Mapping</span><span class="sec-count">${kpis.length}</span></div>`;
+  if(!kpis.length) reveal+=`<div class="no-items">No KPI connections found</div>`;
+  else{
+    reveal+=`<div class="kpi-grid">`;
+    kpis.forEach(k=>{
+      const sop=(k.system_or_personal||'personal').toLowerCase();
+      reveal+=`<div class="kpi-card">
+        <div class="kpi-name">${esc(k.kpi)}</div>
+        <div class="kpi-ev">${esc(k.evidence||'')}</div>
+        <div class="kpi-type ${sop==='system'?'kpi-sys':'kpi-per'}">${sop==='system'?'◆ System impact':'◇ Personal impact'}</div>
+        ${k.note?`<div class="kpi-note">${esc(k.note)}</div>`:''}
+      </div>`;
+    });
+    reveal+=`</div>`;
+  }
+  reveal+=`</div>`;
+
+  // Finalize section
+  reveal+=`<div class="fin-section">
+    <div class="fin-title">Finalize Your Assessment</div>
+    <div class="fin-score-row">
+      <label>Final Score</label>
+      <input type="range" min="1" max="10" value="${S.finalScore}" id="fin-slider" oninput="onFin(this.value)">
+      <span class="fin-score-num" id="fin-num">${S.finalScore}</span>
+    </div>
+    <div class="fin-notes">
+      <label class="fl">Notes for the record</label>
+      <textarea id="fin-notes" placeholder="Any additional observations, context, or caveats for the assessment record…"></textarea>
+    </div>
+    <button class="fin-btn" onclick="finalizeReport()">Generate Final Report</button>
+  </div>`;
+
+  // Inject after delib panel
+  const panel=$('delib-panel');
+  if(panel){
+    panel.insertAdjacentHTML('afterend', reveal);
+    $('reveal-anchor').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+}
+
+function onFin(v){
+  S.finalScore=parseInt(v);
+  $('fin-num').textContent=v;
+}
+
+// ── Finalize Report ────────────────────────────────────────────────────────────
+function finalizeReport(){
+  S.finalNotes=$('fin-notes')?.value||'';
+  const d=S.analysis;
+  const sc=d?.score||{};
+  const ev=d?.evidence||[];
+  const accepted=ev.filter((_,i)=>S.evStates[i]==='accepted');
+  const rejected=ev.filter((_,i)=>S.evStates[i]==='rejected');
+  const fellow=d?.meta?.fellow_name||'Fellow';
+  const client=d?.meta?.client||'Client';
+
+  let h=`<div class="final-report">
+    <div class="phase-banner final" style="margin-bottom:16px"><span class="pb-icon">✓</span><div><b>Finalized Assessment</b> — ${esc(fellow)} @ ${esc(client)}</div></div>
+    <div class="fr-head">
+      <div class="fr-score-big" style="color:${scoreColor(S.finalScore)}">${S.finalScore}</div>
+      <div class="fr-meta">
+        <div class="fr-name">${esc(sc.label||'')}</div>
+        <div class="fr-sub">${esc(fellow)} @ ${esc(client)} · ${bandLabel(S.finalScore)} band · AI suggested ${sc.value||'?'}</div>
+      </div>
+    </div>`;
+
+  h+=`<div class="fr-sec"><div class="fr-sec-title">Justification</div>
+    <p style="font-size:13px;color:var(--ink2);line-height:1.75">${esc(sc.justification||'')}</p>
+    ${S.finalNotes?`<p style="font-size:13px;color:var(--ink2);line-height:1.75;margin-top:8px;font-style:italic">${esc(S.finalNotes)}</p>`:''}
+  </div>`;
+
+  if(accepted.length){
+    h+=`<div class="fr-sec"><div class="fr-sec-title">Accepted Evidence (${accepted.length})</div>`;
+    accepted.forEach(e=>{
+      h+=`<div class="fr-ev-item"><em>"${esc(e.quote||'')}"</em><br><span style="font-size:12px;color:var(--ink3)">${esc(e.interpretation||'')}</span></div>`;
+    });
+    h+=`</div>`;
+  }
+
+  const gaps=d?.gaps||[];
+  if(gaps.length){
+    h+=`<div class="fr-sec"><div class="fr-sec-title">Gaps & Follow-up</div>`;
+    gaps.forEach(g=>{
+      h+=`<p style="font-size:13px;color:var(--ink2);margin-bottom:5px;line-height:1.6"><strong>${esc(dimLabels[g.dimension]||g.dimension)}</strong> (${g.severity}): ${esc(g.detail||'')}</p>`;
+    });
+    const qs=d?.follow_up_questions||[];
+    if(qs.length){
+      h+=`<div style="margin-top:10px">`;
+      qs.forEach((q,i)=>{ h+=`<p style="font-size:13px;color:var(--ink);margin-bottom:5px">${i+1}. ${esc(q.question||'')}</p>`; });
+      h+=`</div>`;
+    }
+    h+=`</div>`;
+  }
+
+  if(S.deliberationResult){
+    const dr=S.deliberationResult;
+    h+=`<div class="fr-sec"><div class="fr-sec-title">Deliberation Record</div>
+      <p style="font-size:12px;color:var(--ink3);font-family:var(--mono)">
+        AI score: ${dr.ai_score||'?'} · Deliberation score: ${dr.deliberation_score||'?'} · Final: ${S.finalScore} · 
+        Q1: ${S.delib.q1||'—'} · Q2: ${S.delib.q2||'—'} · Q3: ${S.delib.q3.join(', ')||'none'} · Q4 gut: ${S.delib.q4}
+      </p>
+    </div>`;
+  }
+
+  if(rejected.length){
+    h+=`<div class="fr-sec"><div class="fr-sec-title">Rejected by Reviewer (${rejected.length})</div>
+      <p style="font-size:12px;color:var(--ink3);font-style:italic">${rejected.map(e=>`"${esc(e.quote||'').slice(0,60)}…"`).join(' · ')}</p>
+    </div>`;
+  }
+
+  h+=`<div style="display:flex;gap:8px;margin-top:4px">
+    <button class="fr-copy-btn" onclick="copyReport()">Copy to Clipboard</button>
+    <button style="padding:9px 16px;border-radius:var(--r);border:1px solid var(--border);background:none;cursor:pointer;font-family:var(--font);font-size:13px;color:var(--ink2)" onclick="location.reload()">New Analysis</button>
+  </div>`;
+
+  h+=`</div>`;
+
+  $('output').insertAdjacentHTML('beforeend', h);
+  $('output').lastElementChild.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function copyReport(){
+  const txt=document.querySelector('.final-report')?.innerText||'';
+  navigator.clipboard.writeText(txt).then(()=>alert('Copied!'));
+}
+
+// ── Evidence actions ──────────────────────────────────────────────────────────
+function evToggle(idx, state){
+  if(S.evStates[idx]===state) state='pending';
+  S.evStates[idx]=state;
+  const card=$(`#ev-${idx}`);
+  if(card){ card.classList.remove('accepted','rejected'); if(state!=='pending') card.classList.add(state); }
+  $(`acc-${idx}`)?.classList.toggle('on', state==='accepted');
+  $(`rej-${idx}`)?.classList.toggle('on', state==='rejected');
+}
+
+function acceptAll(){ S.evStates.forEach((_,i)=>evToggle(i,'accepted')); }
+
+function evCardClick(idx){
+  highlightFromCard(idx);
+  const card=$(`ev-${idx}`);
+  if(!card) return;
+  document.querySelectorAll('.ev-card.lit').forEach(c=>c.classList.remove('lit'));
+  card.classList.add('lit');
+  setTimeout(()=>card.classList.remove('lit'),2500);
+}
+
+// ── Error ─────────────────────────────────────────────────────────────────────
+function renderError(msg){
+  const out=$('output');
+  out.innerHTML=`<div class="err-box"><h3>Analysis failed</h3><p>${esc(msg)}</p></div>`;
+  out.style.display='block';
+  $('empty').style.display='none';
+  setPhase('idle','Error');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+checkHealth(); setInterval(checkHealth,20000);
+loadSamples();
+</script>
+</body>
+</html>
